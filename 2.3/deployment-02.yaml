@@ -1,0 +1,155 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-02
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+          name: nginx-conf
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-configmap
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: front
+spec:
+  ports:
+    - name: http
+      port: 80
+    - name: https
+      port: 443
+  selector:
+    app: nginx
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: front
+                port:
+                  number: 80
+  tls:
+    - hosts:
+      - example.com
+      secretName: tls-01
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap
+data:
+  index.html:
+     <!DOCTYPE html>
+     <html>
+     <head>
+     <title>Welcome to Netology again!</title>
+     <body>
+     <h1>Welcome to Netology again!</h1>
+     </html>
+
+---
+
+# openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server-key.pem \
+#  -out server.pem -subj "/CN=example.com/O=example.com"
+# kubectl create secret tls tls-01 --key server-key.pem --cert server.pem
+
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: tls-01
+data:
+  tls.crt: |
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURPVENDQWlHZ0F3SUJBZ0lVTmoxaG1SNjJl
+    R1dUZGJtZ3pZOTNpT1NrSGd3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd0xERVVNQklHQTFVRUF3d0xa
+    WGhoYlhCc1pTNWpiMjB4RkRBU0JnTlZCQW9NQzJWNFlXMXdiR1V1WTI5dApNQjRYRFRJek1UQXlN
+    ekEyTWpNME4xb1hEVEkwTVRBeU1qQTJNak0wTjFvd0xERVVNQklHQTFVRUF3d0xaWGhoCmJYQnNa
+    UzVqYjIweEZEQVNCZ05WQkFvTUMyVjRZVzF3YkdVdVkyOXRNSUlCSWpBTkJna3Foa2lHOXcwQkFR
+    RUYKQUFPQ0FROEFNSUlCQ2dLQ0FRRUFtS1BvYTMvdmdJK3diTFRRTkU4TVBJSEpDbnFqQnU5Tnd5
+    SEplVFlTMi9pYwpFYWljZDYxby9EekJxYld3LzdNWVA3U29GWlJ0cG0rTngwZ3FEcU1zUnBoOTRN
+    TmRYNGRaWW83UllUNmszankzCkpVY0lEM2hYRFJRK29mRHZqQ0FuRlQzS3YwdWVJcjlaWHFnWU5x
+    dWZxK2JvS2dvb2N0UWl4eXJmMHpncVUrVHEKMU1tZ2RyMkM0NWxoUXUzQk9xNU42YnRsMVc4NnRy
+    bk15OHZlZkNLMFlpZGRoM1hFK1JKNWJxQnp4N3d0QXBuNAo3WDNwdHExYnJ6c0xYSzhkMk1CUWd2
+    Zk9qWmtacnhLck9NZEl3REI3SUlMZjJxVDNCOVVGWVJxc2Z3SHlkSHI1CjZQaVVQMnpTRGpldGJ3
+    RSt1L2ZXaGcycno2dVlnZFgyc1pIeUJxb2Jid0lEQVFBQm8xTXdVVEFkQmdOVkhRNEUKRmdRVU0r
+    MzVBVVUzV2F4aXEzNk0xS2lSR0V6dklIb3dId1lEVlIwakJCZ3dGb0FVTSszNUFVVTNXYXhpcTM2
+    TQoxS2lSR0V6dklIb3dEd1lEVlIwVEFRSC9CQVV3QXdFQi96QU5CZ2txaGtpRzl3MEJBUXNGQUFP
+    Q0FRRUFmU2dOClA0dzhRTkFwUktwTVdoZVBnWFEyeWF4QWRhZS85bWR2Mk5NQmVnZHhoOTBIdFRX
+    T1N0VkZoTWxKZWc2dzhCclIKbksrSW1obmRaVkJmenZlOFRqNGcvZThCbDhkcGlYYWZENUZNUnBq
+    Q2JZNjJXNFdneEVVbmZ1TmRiRDlxOE84YQp0eStLMWpCNzhPK1N0UThQaE9KanFFYnovbnIvSW1q
+    SFBaQzNYbEovSHN6YjNsUHlaMGgrTVBPYUI1TVpKNmpMCk96QnpOVmNzUWswZFQxVzY2TDRrMm1K
+    SHI4V3NabjFqRm12L1paeXJVTTRiMlFtbXI2VG5ZY3FKaDA2Rlp2TmUKWjhYRkVDOE5vOERUYjQ0
+    RlFHK3BBTXBwdzc0ZmdLYVo4L0F6Vlp3VEl2akE1VTBDMVg3clhpRTRld2lTbVEzNAp2akh2THh0
+    bC9TNklQeTgvTFE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  tls.key: |
+    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZB
+    QVNDQktnd2dnU2tBZ0VBQW9JQkFRQ1lvK2hyZisrQWo3QnMKdE5BMFR3dzhnY2tLZXFNRzcwM0RJ
+    Y2w1TmhMYitKd1JxSngzcldqOFBNR3B0YkQvc3hnL3RLZ1ZsRzJtYjQzSApTQ29Pb3l4R21IM2d3
+    MTFmaDFsaWp0RmhQcVRlUExjbFJ3Z1BlRmNORkQ2aDhPK01JQ2NWUGNxL1M1NGl2MWxlCnFCZzJx
+    NStyNXVncUNpaHkxQ0xIS3QvVE9DcFQ1T3JVeWFCMnZZTGptV0ZDN2NFNnJrM3B1MlhWYnpxMnVj
+    ekwKeTk1OElyUmlKMTJIZGNUNUVubHVvSFBIdkMwQ21manRmZW0yclZ1dk93dGNyeDNZd0ZDQzk4
+    Nk5tUm12RXFzNAp4MGpBTUhzZ2d0L2FwUGNIMVFWaEdxeC9BZkowZXZubytKUS9iTklPTjYxdkFU
+    Njc5OWFHRGF2UHE1aUIxZmF4CmtmSUdxaHR2QWdNQkFBRUNnZ0VBRU5uUGQ4YW81eFYxMFpwb2Zj
+    M1lPUG5PK3ZRcytVQUQ0cTNoTXh0d0c0Nm4KbEI5OEhvNHJUK1ZaTCtZYUF6Qi9WZEVZMlVFSWxk
+    NHMxYm8yd21UckoyUUFTWWJuMFByOU9DOHlHRDAxTUQrZApyR1RhRS9NaUVSU1NFWWlxdVZwM1Zo
+    WDdRd0VURlJ6d3ZjMXExdVk5ZTFuRGVaaWpmSUhFMFIzL2xhN1dwV290CmdYVlhyZWNiMytJZWd2
+    SkpxNWNCV1dDcGh3RzNjVFBNZmFMYkpuRHB1N0o3WHBzTkoyQ29qMmU2Qmwwdk5BdksKMFNTek1v
+    SGhCd0xrMVVxdE9iUm9PNFkvcnJBQkhLd2ZnMk4yVU5qb2V6c0ZrQjdCaGRuczhRaVRWWkVjOVRU
+    ZApiM0szSmdlYjltcmZpcXkwQU9aQk9tRTVud0NUTHNoN1QxenJFcE5Kc1FLQmdRQytjb0dWUkRj
+    MlZlSTh2MzVNCkFmcTl5Z0dxUWUzMlJ2SmdrVUFKTDc0azJJQlY0aFNXU0ZyQ0xtekJ5RmlmRldk
+    WnRJbmFUQXZjRDJ4VEFYTkgKU2t4YVVsdGRDNDcvRGlqZDAyeVN3Y084citnRThrbEdQTWtwUU1C
+    YUl2a3NCUU5sZjNsaEt3Y0ZQcWk2VFBmWgp5SzNiUTBlcU1NaWN1SlZTNUJIOThISFRHUUtCZ1FE
+    TkxmMXFPcGw4Ry80dHlCWXAwczdxcUNvQ0VtcklhNDlRCnVHU3IwWURsa2FRN2NjYUhoZklReE5n
+    L3ZheVo4dVVIMnBvK3BXK0VuZ0YzTlcwUzN6WVQvRG4yc2FRMDIvWEsKY09QblJhM29wY1RCckpX
+    Rkc3MkhMQUxYTHkvL052ZEJtbjl0RlJRWmhYaVd1aVJWSmVEYU9id1FRdXI1UXVDdApKa1RpQmhK
+    N3h3S0JnQS93YTNIL3RKTkNtdDIwdFRCTlZoditSU2RudnkvR2ZsQ2d0M2hOVzUrZjB4WGRCeFlR
+    CjFpKzhUUFBtL2F2SzBjeUxOS0psalBTTkFlYnNqeVpmVElhZXIvRFluODR1OURLa21FaXNHT0s0
+    NGpWUHhkd3cKQ0RJQXJsaWM1cmZOYjV4V0QrV1hBVTVxRVJzT2lBdmRKTmZlQ0tod3pzbDNGV0JM
+    b0VuZGp0azVBb0dCQU1XeApyRnl3ZmJheG1pVXVodnhoWEhHSStvRG9rZTd1aERZNGxQZGdjNXUr
+    eXNsa0JQQUx4WU1XeDI0VEtiMWo1ZjI5ClNhVlc3YTZRTjhWT3V2dldDbHNUU2g1Q1ozOXUrTkxJ
+    Rnk5OVdlV3g0M1RnLzJnenBGZ2J0ZGowWklDNXkxOXcKcDVySkZvYklyYm85UEVpMnFJSmI0cktn
+    WjVzb0x5ZG1talJWdVhWOUFvR0JBTDBpUXV1OFFLOGR2U2JKeStyWApHNUtIaGN2eWZyd1cveUFQ
+    SitRZDhxNjhJeUNGVUlXbDIzQml0bTdleVZsMHp1MkNJZWNhWFhHc3NjYURlMk05CjdhSWg1L09v
+    L2pJYUpIdXZ6dzFzbDZQTENSb0VSNVFIdGtKOWJyRnhNQU5kb0lIUGJ2Q2FmazJQMlZIc2s2WS8K
+    NWNGQ3FmdE5HWmlzZWpHRGlLdkRuYmR6Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
