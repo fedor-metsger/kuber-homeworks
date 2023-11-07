@@ -6,7 +6,7 @@ metadata:
   namespace: user-ns
 rules:
 - apiGroups: [""]
-  resources: ["pods", "pods/logs"]
+  resources: ["pods", "pods/log"]
   verbs: ["get", "list"]
 
 ---
