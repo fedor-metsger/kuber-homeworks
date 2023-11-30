@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deployment-back
+  namespace: app
   labels:
     app: backend
 spec:

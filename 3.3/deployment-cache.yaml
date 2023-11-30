@@ -2,18 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment-back
+  name: deployment-cache
+  namespace: app
   labels:
-    app: backend
+    app: cache
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: backend
+      app: cache
   template:
     metadata:
       labels:
-        app: backend
+        app: cache
     spec:
       containers:
       - name: multitool

@@ -2,19 +2,19 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: cache
+  name: backend
   namespace: app
 spec:
   podSelector:
     matchLabels:
-      app: cache
+      app: backend
   policyTypes:
     - Ingress
   ingress:
     - from:
       - podSelector:
           matchLabels:
-            app: backend
+            app: frontend
       ports:
         - protocol: TCP
           port: 80

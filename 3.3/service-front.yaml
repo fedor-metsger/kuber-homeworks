@@ -3,9 +3,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: front
+  namespace: app
 spec:
   ports:
-    - name: http
+    - name: multitool
       port: 80
   selector:
     app: frontend
