@@ -1,0 +1,109 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-back
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: multitool
+        image: wbitt/network-multitool
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-front
+  labels:
+    app: frontend
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 60%
+      maxUnavailable: 60%
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.19
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: back
+spec:
+  ports:
+    - name: miltitool
+      port: 80
+  selector:
+    app: backend
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: front
+spec:
+  ports:
+    - name: http
+      port: 80
+  selector:
+    app: frontend
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-01
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: front
+                port:
+                  number: 80
+            path: /
+          - pathType: Prefix
+            backend:
+              service:
+                name: back
+                port:
+                  number: 80
+            path: /api
